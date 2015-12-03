@@ -40,6 +40,11 @@ var SColor = {
          * draw the image
          */
         this.context.drawImage(this.image, 0, 0, this.canvas.width, this.canvas.height);
+
+        /**
+         * show the image
+         */
+        $(document.body).append(this.canvas);
     },
 
     /**
@@ -86,30 +91,34 @@ var SColor = {
         return this.convertRGB(data);
     },
 
-    traceNext: function(x, y, dx, dy, template, tolerateRate) {
-    	if (this.checkColor(this.getBlock(x + dx, y + dy, 1, 1), template, tolerateRate) && this.internalArea(x + dx, y + dy)) {
-    		return this.traceNext(x + dx, y + dx, dx, dy, template, tolerateRate);
-    	}
+    traceNext: function(x, y, dx, rotate, template, tolerateRate) {
+        /**
+         * calculate the new point
+         */
+        var newX = x + dx,
+            newY = y + Math.tan(rotate) * dx;
 
-		if (this.checkColor(this.getBlock(x + dx, y, 1, 1), template, tolerateRate) && this.internalArea(x + dx, y)) {
-    		return this.traceNext(x + dx, y, dx, dy, template, tolerateRate);
-    	}
+        /**
+         * trace next if the next point is legal
+         */
+        if (this.internalArea(newX, newY) && this.checkColor(this.getBlock(newX, Math.round(newY), 1, 1), template, tolerateRate)) {
+            return this.traceNext(newX, newY, dx, rotate, template, tolerateRate);
+        }
 
-    	if (this.checkColor(this.getBlock(x, y + dy, 1, 1), template, tolerateRate) && this.internalArea(x, y + dy)) {
-    		return this.traceNext(x, y + dy, dx, dy, template, tolerateRate);
-    	}
-
-    	return {
-    		x: x,
-    		y: y
-    	};
+        /**
+         * when illegal, then return the current point
+         */
+        return {
+            x: x,
+            y: y
+        };
     },
 
     internalArea: function(x, y) {
-    	if ((x > this.canvas.width || x < 0) || (y > this.canvas.height || y < 0)) {
-    		return false;
-    	}
-    	return true;
+        if ((x > this.canvas.width || x < 0) || (y > this.canvas.height || y < 0)) {
+            return false;
+        }
+        return true;
     },
 
     checkColor: function(color, template, rate) {
@@ -154,8 +163,26 @@ var SColor = {
         var template = this.getBlock(startX, startY, width, height);
 
         /**
-         * bottom-right
+         * trace the Degree 1
          */
-        console.log(this.traceNext(startX, startY, 1, 1, tolerateRate));
+        var rotate = 0;
+        var timeFn = null;
+        timeFn = setInterval(function() {
+        	if (rotate > 360) {
+        		clearInterval(timeFn);
+        	}
+
+        	if (rotate == 90 || rotate == 270) {
+        		rotate++;
+                return;
+            }
+
+            var point_right = SColor.traceNext(startX, startY, 1, rotate, template, tolerateRate);
+            $('#point-container').append('<div class="point" style="top: ' + (point_right.y - 1) + 'px; left: ' + (point_right.x - 1) + 'px"></div>');
+
+            var point_left = SColor.traceNext(startX, startY, -1, rotate, template, tolerateRate);
+            $('#point-container').append('<div class="point" style="top: ' + (point_left.y - 1) + 'px; left: ' + (point_left.x - 1) + 'px"></div>');
+            rotate++;
+        }, 1);
     }
 };
